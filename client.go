@@ -107,6 +107,7 @@ func (o *Options) isTokenExpired() bool {
 }
 
 func (c *Client) request(method, url string, data io.Reader, respData interface{}) (interface{}, error) {
+	c.opts.verifyAccessToken()
 	request, err := http.NewRequest(method, url, data)
 	if err != nil {
 		return nil, err
