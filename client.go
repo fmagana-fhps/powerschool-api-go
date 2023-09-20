@@ -106,7 +106,7 @@ func (o *Options) isTokenExpired() bool {
 	return o.Access.ExpiresAt <= time.Now().Unix()
 }
 
-func (c *Client) request(method, url string, data io.Reader, respData interface{}) (interface{}, error) {
+func (c *Client) request(method, url string, data io.Reader, respData interface{}) (*m.Response, error) {
 	c.opts.verifyAccessToken()
 	request, err := http.NewRequest(method, url, data)
 	if err != nil {
@@ -123,15 +123,24 @@ func (c *Client) request(method, url string, data io.Reader, respData interface{
 	}
 	defer resp.Body.Close()
 
+	br := &m.Response{}
+	br.Header = resp.Header
+	br.StatusCode = resp.StatusCode
+	br.Body = respData
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return respData, json.Unmarshal(body, &respData)
+	if len(body) == 0 {
+		return br, nil
+	}
+
+	return br, json.Unmarshal(body, &br.Body)
 }
 
-func (c *Client) do(method, endpoint string, reqData, respData interface{}) (interface{}, error) {
+func (c *Client) do(method, endpoint string, reqData, respData interface{}) (*m.Response, error) {
 	url := c.opts.BaseURL + endpoint
 
 	if reqData != nil {
@@ -140,24 +149,25 @@ func (c *Client) do(method, endpoint string, reqData, respData interface{}) (int
 			return nil, err
 		}
 
+		fmt.Println(string(b))
 		return c.request(method, url, strings.NewReader(string(b)), respData)
 	}
 
 	return c.request(method, url, nil, respData)
 }
 
-func (c *Client) get(endpoint string, respData interface{}) (interface{}, error) {
+func (c *Client) get(endpoint string, respData interface{}) (*m.Response, error) {
 	return c.do(http.MethodGet, endpoint, nil, respData)
 }
 
-func (c *Client) put(endpoint string, reqData, respData interface{}) (interface{}, error) {
+func (c *Client) put(endpoint string, reqData, respData interface{}) (*m.Response, error) {
 	return c.do(http.MethodPost, endpoint, reqData, respData)
 }
 
-func (c *Client) post(endpoint string, reqData, respData interface{}) (interface{}, error) {
+func (c *Client) post(endpoint string, reqData, respData interface{}) (*m.Response, error) {
 	return c.do(http.MethodPost, endpoint, reqData, respData)
 }
 
-func (c *Client) delete(endpoint string, reqData, respData interface{}) (interface{}, error) {
-	return c.do(http.MethodDelete, endpoint, reqData, respData)
+func (c *Client) delete(endpoint string, reqData interface{}) (*m.Response, error) {
+	return c.do(http.MethodDelete, endpoint, reqData, m.Response{})
 }

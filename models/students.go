@@ -1,5 +1,9 @@
 package models
 
+type StudentResponse struct {
+	Student Student `json:"student"`
+}
+
 type Student struct {
 	Expansions        string             `json:"@expansions,omitempty"`
 	Extensions        string             `json:"@extensions,omitempty"`

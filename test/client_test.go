@@ -42,8 +42,48 @@ func TestClient(t *testing.T) {
 		t.Fatalf("client is nil, error is %v", err)
 	}
 
-	fmt.Println(options.Access)
+	trans, err := c.Powerquery("net.fhps.transportation.transportation.get_records", nil)
 
-	s, _ := c.StudentById("79201")
-	fmt.Println(s.ExtensionData)
+	fmt.Println(trans.Record, err)
+
+	// fmt.Println(trans.Record[0], err)
+}
+
+func TestTransportation(t *testing.T) {
+	c, err := client()
+	if c == nil || err != nil {
+		t.Fatalf("client is nil, error is %v", err)
+	}
+
+	r := m.TransportionRecord{
+		Studentid:     "6510",
+		Description:   "FH Data Test",
+		Schoolid:      "1265",
+		Startdate:     "2023-09-19",
+		Enddate:       "2023-12-31",
+		Departuretime: "34980",
+		Arrivaltime:   "36900",
+		FromTo:        "To",
+		Type:          "R",
+		Monday:        "0",
+		Tuesday:       "0",
+		Wednesday:     "1",
+		Thursday:      "0",
+		Friday:        "0",
+		Busnumber:     "7",
+		Drivername:    "Danis, Ben",
+		Address:       "1725 Hall St SW",
+	}
+
+	re, err := c.CreateTransportRecord(r)
+	if err != nil {
+		fmt.Println(re)
+		t.Fatalf("err is not nil, error is %v", err)
+	}
+
+	fmt.Println(re)
+
+	fmt.Println(c.TransportationRecordById(re[0].SuccessMessage.ID))
+
+	fmt.Println(c.DeleteTransportationRecord(re[0].SuccessMessage.ID))
 }
