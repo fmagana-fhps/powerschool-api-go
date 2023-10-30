@@ -8,10 +8,10 @@ type AccessTokenResponse struct {
 	ExpiresAt   int64
 }
 
-type Response struct {
+type Response[T any] struct {
 	StatusCode int
 	Header     http.Header
-	Body       interface{}
+	Body       T
 }
 
 type Tables struct {
@@ -25,9 +25,9 @@ type SchemaRecord struct {
 }
 
 type PowerqueryResponse struct {
-	Name       string                   `json:"name,omitempty"`
-	Record     []map[string]interface{} `json:"record,omitempty"`
-	Extensions string                   `json:"@extensions,omitempty"`
+	Name       string           `json:"name,omitempty"`
+	Records    []map[string]any `json:"record,omitempty"`
+	Extensions string           `json:"@extensions,omitempty"`
 }
 
 type SchemaResponse struct {
@@ -36,10 +36,12 @@ type SchemaResponse struct {
 	DeleteCount int      `json:"delete_count,omitempty"`
 	Result      []Result `json:"result,omitempty"`
 }
+
 type SuccessMessage struct {
 	ID  int    `json:"id,omitempty"`
 	Ref string `json:"ref,omitempty"`
 }
+
 type Result struct {
 	Status         string         `json:"status,omitempty"`
 	Action         string         `json:"action,omitempty"`

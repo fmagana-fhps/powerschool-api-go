@@ -1,6 +1,7 @@
 package ps
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -21,7 +22,7 @@ type Client struct {
 }
 
 type Options struct {
-	BaseURL      string
+	baseURL      string
 	ClientId     string
 	ClientSecret string
 	Access       *m.AccessTokenResponse
@@ -37,7 +38,7 @@ func NewClient(host string, options *Options) (*Client, error) {
 		return nil, errors.New("host has not been provided but required")
 	}
 
-	options.BaseURL = fmt.Sprintf("https://%s", host)
+	options.baseURL = fmt.Sprintf("https://%s", host)
 
 	if options.ClientId == "" || options.ClientSecret == "" {
 		return nil, errors.New("credentials have not been provided but required")
@@ -66,7 +67,7 @@ func (o *Options) verifyAccessToken() (*m.AccessTokenResponse, error) {
 	data := []byte(o.ClientId + ":" + o.ClientSecret)
 	enc := base64.StdEncoding.EncodeToString(data)
 
-	url := o.BaseURL + "/oauth/access_token/"
+	url := o.baseURL + "/oauth/access_token/"
 	reader := strings.NewReader(`grant_type=client_credentials`)
 	req, err := http.NewRequest("POST", url, reader)
 	if err != nil {
@@ -106,7 +107,7 @@ func (o *Options) isTokenExpired() bool {
 	return o.Access.ExpiresAt <= time.Now().Unix()
 }
 
-func (c *Client) request(method, url string, data io.Reader, respData interface{}) (*m.Response, error) {
+func (c *Client) request(method, url string, data io.Reader, respData interface{}) (*m.Response[any], error) {
 	c.opts.verifyAccessToken()
 	request, err := http.NewRequest(method, url, data)
 	if err != nil {
@@ -116,6 +117,7 @@ func (c *Client) request(method, url string, data io.Reader, respData interface{
 	request.Header.Add("Authorization", "Bearer "+c.opts.Access.AccessToken)
 	request.Header.Add("Accept", "application/json")
 	request.Header.Add("Content-Type", "application/json")
+	request.Close = true
 
 	resp, err := c.opts.HTTPClient.Do(request)
 	if err != nil {
@@ -123,8 +125,8 @@ func (c *Client) request(method, url string, data io.Reader, respData interface{
 	}
 	defer resp.Body.Close()
 
-	br := &m.Response{}
-	br.Header = resp.Header
+	br := &m.Response[any]{}
+	br.Header = resp.Header.Clone()
 	br.StatusCode = resp.StatusCode
 	br.Body = respData
 
@@ -137,11 +139,12 @@ func (c *Client) request(method, url string, data io.Reader, respData interface{
 		return br, nil
 	}
 
+	// fmt.Printf("%s\n%v\n", string(body), body)
 	return br, json.Unmarshal(body, &br.Body)
 }
 
-func (c *Client) do(method, endpoint string, reqData, respData interface{}) (*m.Response, error) {
-	url := c.opts.BaseURL + endpoint
+func (c *Client) do(method, endpoint string, reqData, respData interface{}) (*m.Response[any], error) {
+	url := c.opts.baseURL + endpoint
 
 	if reqData != nil {
 		b, err := json.Marshal(reqData)
@@ -149,25 +152,24 @@ func (c *Client) do(method, endpoint string, reqData, respData interface{}) (*m.
 			return nil, err
 		}
 
-		fmt.Println(string(b))
-		return c.request(method, url, strings.NewReader(string(b)), respData)
+		return c.request(method, url, bytes.NewReader(b), respData)
 	}
 
 	return c.request(method, url, nil, respData)
 }
 
-func (c *Client) get(endpoint string, respData interface{}) (*m.Response, error) {
+func (c *Client) get(endpoint string, respData interface{}) (*m.Response[any], error) {
 	return c.do(http.MethodGet, endpoint, nil, respData)
 }
 
-func (c *Client) put(endpoint string, reqData, respData interface{}) (*m.Response, error) {
+func (c *Client) put(endpoint string, reqData, respData interface{}) (*m.Response[any], error) {
+	return c.do(http.MethodPut, endpoint, reqData, respData)
+}
+
+func (c *Client) post(endpoint string, reqData, respData interface{}) (*m.Response[any], error) {
 	return c.do(http.MethodPost, endpoint, reqData, respData)
 }
 
-func (c *Client) post(endpoint string, reqData, respData interface{}) (*m.Response, error) {
-	return c.do(http.MethodPost, endpoint, reqData, respData)
-}
-
-func (c *Client) delete(endpoint string, reqData interface{}) (*m.Response, error) {
-	return c.do(http.MethodDelete, endpoint, reqData, m.Response{})
+func (c *Client) delete(endpoint string) (*m.Response[any], error) {
+	return c.do(http.MethodDelete, endpoint, nil, m.Response[any]{})
 }

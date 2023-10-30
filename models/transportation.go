@@ -1,7 +1,8 @@
 package models
 
 type TransportionRecord struct {
-	Studentid           string `json:"studentid"`
+	Dcid                string `json:"dcid,omitempty"`
+	Studentid           string `json:"studentid,omitempty"`
 	Description         string `json:"description,omitempty"`
 	Schoolid            string `json:"schoolid,omitempty"`
 	Startdate           string `json:"startdate,omitempty"`

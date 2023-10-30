@@ -42,9 +42,10 @@ func TestClient(t *testing.T) {
 		t.Fatalf("client is nil, error is %v", err)
 	}
 
-	trans, err := c.Powerquery("net.fhps.transportation.transportation.get_records", nil)
+	resp, err := c.Powerquery("net.fhps.transportation.transportation.get_records?pagesize=5", nil)
+	trs := ps.CreatePowerqueryModels[m.TransportionRecord](resp.Body.Records)
 
-	fmt.Println(trans.Record, err)
+	fmt.Println(trs, err)
 
 	// fmt.Println(trans.Record[0], err)
 }
@@ -81,9 +82,9 @@ func TestTransportation(t *testing.T) {
 		t.Fatalf("err is not nil, error is %v", err)
 	}
 
-	fmt.Println(re)
+	fmt.Println(re.Body)
 
-	fmt.Println(c.TransportationRecordById(re[0].SuccessMessage.ID))
+	fmt.Println(c.TransportationRecordById(re.Body.Result[0].SuccessMessage.ID))
 
-	fmt.Println(c.DeleteTransportationRecord(re[0].SuccessMessage.ID))
+	fmt.Println(c.DeleteTransportationRecord(re.Body.Result[0].SuccessMessage.ID))
 }
